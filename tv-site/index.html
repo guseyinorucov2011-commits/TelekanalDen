@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>День — Телеканал</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+
+<header>
+    <div class="logo"><img src="logo.png" alt="День" class="logo-img"></div>
+
+    <div class="header-right">
+        <select id="langSelect">
+            <option value="ru">RU</option>
+            <option value="en">EN</option>
+        </select>
+
+        <div id="auth-buttons">
+            <button id="loginBtn" class="btn-outline" data-i18n="loginBtn">Вход</button>
+            <button id="registerBtn" class="btn-fill" data-i18n="registerBtn">Регистрация</button>
+        </div>
+
+        <div id="userInfo" style="display:none;">
+            <div id="userAvatar" class="avatar-small"></div>
+            <span id="userName"></span>
+            <img src="LogoGalochka.png" class="mini-verified" id="miniVerified" style="display:none;">
+            <button id="logoutBtn" class="btn-outline" data-i18n="logoutBtn">Выйти</button>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <h1 id="heroTitle" data-i18n="mainTitle">Добро пожаловать на телеканал «День»!</h1>
+        <p id="heroText" data-i18n="mainText">Свежие новости, спорт и развлечения каждый день.</p>
+
+        <div class="search-wrap">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Поиск по темам...">
+            </div>
+            <div class="categories" id="categories"></div>
+        </div>
+    </section>
+
+    <section class="posts-grid" id="postsGrid"></section>
+</main>
+
+<!-- ===== Кнопка создания поста ===== -->
+<div id="createPostFab" style="display:none;">＋</div>
+
+<!-- ===== Регистрация ===== -->
+<div class="modal auth-modal" id="registerModal">
+    <div class="modal-content">
+        <span class="close" data-close="registerModal">&times;</span>
+        <h2 data-i18n="registerTitle">Регистрация</h2>
+
+        <div id="regStep1" class="form-step">
+            <div class="field">
+                <input type="text" id="regNickname" data-i18n-placeholder="nicknamePlaceholder" placeholder="Никнейм">
+                <p class="field-msg" id="regNicknameMsg"></p>
+            </div>
+            <div class="field">
+                <input type="email" id="regEmail" data-i18n-placeholder="emailPlaceholder" placeholder="Email">
+                <p class="field-msg" id="regEmailMsg"></p>
+            </div>
+            <div class="field">
+                <input type="password" id="regPassword" data-i18n-placeholder="passwordPlaceholder" placeholder="Пароль">
+                <p class="field-msg" id="regPasswordMsg"></p>
+            </div>
+            <button class="btn-fill" id="regSendBtn" onclick="sendRegisterCode()" data-i18n="sendCodeBtn" disabled>Отправить код</button>
+        </div>
+
+        <div id="regStep2" class="form-step" style="display:none;">
+            <button class="btn-back" onclick="backToStep('reg')" data-i18n="backBtn">← Назад</button>
+            <p data-i18n="codeSentText">Код отправлен на почту, введите его:</p>
+            <input type="text" id="regCode" data-i18n-placeholder="codePlaceholder" placeholder="Код из письма">
+            <button class="btn-fill" onclick="verifyRegisterCode()" data-i18n="confirmBtn">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Вход ===== -->
+<div class="modal auth-modal" id="loginModal">
+    <div class="modal-content">
+        <span class="close" data-close="loginModal">&times;</span>
+        <h2 data-i18n="loginTitle">Вход</h2>
+
+        <div id="loginStep1" class="form-step">
+            <input type="text" id="loginNickname" data-i18n-placeholder="nicknamePlaceholder" placeholder="Никнейм">
+            <input type="password" id="loginPassword" data-i18n-placeholder="passwordPlaceholder" placeholder="Пароль">
+            <p class="forgot-link" onclick="openForgotPassword()" data-i18n="forgotPassword">Забыли пароль?</p>
+            <button class="btn-fill" onclick="sendLoginCode()" data-i18n="sendCodeBtn">Отправить код</button>
+        </div>
+
+        <div id="loginStep2" class="form-step" style="display:none;">
+            <button class="btn-back" onclick="backToStep('login')" data-i18n="backBtn">← Назад</button>
+            <p data-i18n="codeSentText">Код отправлен на почту, введите его:</p>
+            <input type="text" id="loginCode" data-i18n-placeholder="codePlaceholder" placeholder="Код из письма">
+            <button class="btn-fill" onclick="verifyLoginCode()" data-i18n="loginBtnModal">Войти</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Забыли пароль ===== -->
+<div class="modal auth-modal" id="forgotModal">
+    <div class="modal-content">
+        <span class="close" data-close="forgotModal">&times;</span>
+        <h2 data-i18n="forgotTitle">Восстановление пароля</h2>
+
+        <div id="forgotStep1" class="form-step">
+            <input type="text" id="forgotNickname" data-i18n-placeholder="nicknamePlaceholder" placeholder="Никнейм">
+            <button class="btn-fill" onclick="sendForgotCode()" data-i18n="sendCodeBtn">Отправить код</button>
+        </div>
+
+        <div id="forgotStep2" class="form-step" style="display:none;">
+            <button class="btn-back" onclick="backToStep('forgot')" data-i18n="backBtn">← Назад</button>
+            <p data-i18n="codeSentText">Код отправлен на почту, введите его:</p>
+            <input type="text" id="forgotCode" data-i18n-placeholder="codePlaceholder" placeholder="Код из письма">
+            <input type="password" id="newPassword" data-i18n-placeholder="newPasswordPlaceholder" placeholder="Новый пароль">
+            <button class="btn-fill" onclick="verifyForgotCode()" data-i18n="resetPasswordBtn">Сменить пароль</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== ПРОФИЛЬ — просмотр своего (баннер как фон) ===== -->
+<div class="modal" id="profileModal">
+    <div class="modal-content wide-modal profile-view-content">
+        <div class="profile-banner-bg" id="viewBannerSelf"></div>
+        <span class="close" data-close="profileModal">&times;</span>
+
+        <div class="profile-header">
+            <div id="viewAvatarSelf" class="avatar-big"></div>
+            <div class="profile-names">
+                <div class="display-name-row">
+                    <span class="static-name" id="viewNameSelf"></span>
+                    <img src="LogoGalochka.png" class="verified-badge" id="viewVerifiedSelf" style="display:none;">
+                </div>
+                <div class="username-row"><span class="static-username" id="viewUsernameSelf"></span></div>
+            </div>
+        </div>
+
+        <div class="profile-body">
+            <p class="bio-view" id="viewBioSelf"></p>
+            <div class="profile-meta">
+                <span class="role-chip" id="viewRoleSelf"></span>
+                <span class="meta-item" id="viewCreatedSelf"></span>
+            </div>
+            <div id="viewStatsSelf" class="stats-row"></div>
+            <button class="btn-fill square-btn settings-open-btn" id="openSettingsBtn">⚙️ <span data-i18n="settingsBtn">Настройки</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Чужой профиль ===== -->
+<div class="modal" id="viewUserModal">
+    <div class="modal-content wide-modal profile-view-content">
+        <div class="profile-banner-bg" id="viewUserBanner"></div>
+        <button class="back-btn-corner" id="viewUserBackBtn" data-i18n="backBtn">← Назад</button>
+        <span class="close" data-close="viewUserModal">&times;</span>
+
+        <div class="profile-header">
+            <div id="viewUserAvatar" class="avatar-big"></div>
+            <div class="profile-names">
+                <div class="display-name-row">
+                    <span id="viewUserDisplayName" class="static-name"></span>
+                    <img src="LogoGalochka.png" class="verified-badge" id="viewVerifiedBadge" style="display:none;">
+                </div>
+                <div class="username-row"><span id="viewUserUsername" class="static-username"></span></div>
+            </div>
+        </div>
+
+        <div class="profile-body">
+            <p class="bio-view" id="viewUserBio"></p>
+            <div class="profile-meta">
+                <span class="role-chip" id="viewUserRole"></span>
+                <span class="meta-item" id="viewUserCreatedAt"></span>
+            </div>
+            <p id="viewEmailRow" class="meta-item"><strong data-i18n="emailLabel">Email:</strong> <span id="viewUserEmail"></span></p>
+            <div id="viewStatsBlock" class="stats-row"></div>
+            <button class="btn-fill square-btn" id="followBtn" style="width:100%; margin-top:15px;"></button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== ПАНЕЛЬ НАСТРОЕК ===== -->
+<div id="settingsPanel" class="side-panel">
+    <div class="side-panel-header">
+        <button class="btn-back" id="settingsBackBtn" style="display:none;" data-i18n="backBtn">← Назад</button>
+        <h2 id="settingsPanelTitle" data-i18n="settingsBtn">Настройки</h2>
+        <span class="close" id="closeSettingsPanel">&times;</span>
+    </div>
+
+    <div id="settingsMenu" class="settings-menu">
+        <div class="settings-menu-item" data-target="editProfilePage">
+            <span class="menu-icon">👤</span>
+            <span class="menu-text" data-i18n="menuEditProfile">Редакция профиля</span>
+            <span class="menu-arrow">›</span>
+        </div>
+        <div class="settings-menu-item" data-target="switchAccountPage">
+            <span class="menu-icon">🔄</span>
+            <span class="menu-text" data-i18n="menuSwitchAccount">Сменить аккаунт</span>
+            <span class="menu-arrow">›</span>
+        </div>
+    </div>
+
+    <div id="editProfilePage" class="settings-page">
+        <div class="profile-banner-bg edit-mode" id="profileBannerBig">
+            <button class="banner-edit-btn" id="changeBannerBtn">🖼️</button>
+            <input type="file" id="bannerInput" accept="image/*" style="display:none;">
+        </div>
+
+        <div class="avatar-edit-wrap centered">
+            <div id="profileAvatarBig" class="avatar-big"></div>
+            <button class="avatar-edit-btn" id="avatarEditBtn">✏️</button>
+        </div>
+
+        <div id="avatarPicker" class="avatar-picker" style="display:none;">
+            <button class="btn-outline square-btn small" id="uploadAvatarBtn">📁 <span data-i18n="uploadPhoto">Загрузить фото</span></button>
+            <button class="btn-outline square-btn small" id="removeAvatarBtn">🗑️ <span data-i18n="removePhoto">Убрать фото</span></button>
+            <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+            <div class="color-palette" id="colorPalette"></div>
+        </div>
+
+        <div class="settings-section">
+            <label class="settings-label" data-i18n="displayNameLabel">Отображаемое имя</label>
+            <input type="text" id="editDisplayName" placeholder="Имя">
+
+            <label class="settings-label" data-i18n="usernameLabel">Username</label>
+            <div class="username-edit-row"><span>@</span><input type="text" id="editUsername" placeholder="username"></div>
+
+            <label class="settings-label" data-i18n="bioLabel">О себе</label>
+            <textarea id="editBio" class="bio-textarea" maxlength="150" data-i18n-placeholder="bioPlaceholder" placeholder="Расскажите о себе..."></textarea>
+
+            <label class="settings-label" data-i18n="favCategoryLabel">Любимая категория</label>
+            <select id="favCategorySelect"></select>
+        </div>
+
+        <hr class="divider">
+
+        <div class="settings-section">
+            <h4 class="section-title" data-i18n="privacyTitle">Приватность</h4>
+            <div class="toggle-row"><span data-i18n="hideEmailLabel">Скрыть email от других</span><label class="switch"><input type="checkbox" id="hideEmailToggle"><span class="slider"></span></label></div>
+            <div class="toggle-row"><span data-i18n="privateProfileLabel">Приватный профиль</span><label class="switch"><input type="checkbox" id="privateProfileToggle"><span class="slider"></span></label></div>
+            <div class="toggle-row"><span data-i18n="notificationsLabel">Email-уведомления</span><label class="switch"><input type="checkbox" id="notificationsToggle"><span class="slider"></span></label></div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="settings-section">
+            <h4 class="section-title" data-i18n="tabTheme">Оформление</h4>
+            <div class="theme-options">
+                <div class="theme-card" data-theme="dark"><div class="theme-preview theme-preview-dark"></div><span data-i18n="themeDark">Тёмная</span></div>
+                <div class="theme-card" data-theme="light"><div class="theme-preview theme-preview-light"></div><span data-i18n="themeLight">Светлая</span></div>
+                <div class="theme-card" data-theme="sunset"><div class="theme-preview theme-preview-sunset"></div><span data-i18n="themeSunset">Закат</span></div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="settings-section">
+            <h4 class="section-title" data-i18n="tabSecurity">Безопасность</h4>
+            <p class="hint-text" data-i18n="twoFAHint">🔒 Двухфакторная защита уже включена.</p>
+            <p class="meta-item"><strong data-i18n="lastLoginLabel">Последний вход:</strong> <span id="lastLoginText"></span></p>
+            <label class="settings-label" data-i18n="changeEmailTitle">Сменить Email</label>
+            <input type="email" id="newEmailInput" data-i18n-placeholder="newEmailPlaceholder" placeholder="Новый email">
+            <button class="btn-outline square-btn" onclick="requestEmailChange()" data-i18n="sendCodeBtn">Отправить код</button>
+            <div id="emailChangeStep2" style="display:none;">
+                <input type="text" id="emailChangeCode" data-i18n-placeholder="codePlaceholder" placeholder="Код из письма">
+                <button class="btn-fill square-btn" onclick="confirmEmailChange()" data-i18n="confirmBtn">Подтвердить</button>
+            </div>
+        </div>
+
+        <button class="btn-fill square-btn" id="saveAllSettingsBtn" style="margin-top:10px;" data-i18n="saveBtn">Сохранить</button>
+    </div>
+
+    <div id="switchAccountPage" class="settings-page">
+        <div id="savedAccountsList"></div>
+        <button class="btn-outline square-btn" id="addAccountBtn" style="width:100%; margin-top:10px;" data-i18n="addAccountBtn">+ Добавить аккаунт</button>
+    </div>
+</div>
+
+<!-- ===== Создание/редактирование поста ===== -->
+<div class="modal" id="postEditModal">
+    <div class="modal-content wide-modal">
+        <span class="close" data-close="postEditModal">&times;</span>
+        <h2 id="postEditModalTitle" data-i18n="newPostTitle">Новый пост</h2>
+
+        <div class="post-image-upload" id="postImageUpload">
+            <img id="postImagePreview" style="display:none;">
+            <span id="postImagePlaceholder">📷 <span data-i18n="addPhotoText">Добавить фото</span></span>
+        </div>
+        <input type="file" id="postImageInput" accept="image/*" style="display:none;">
+
+        <input type="text" id="postTitleInput" data-i18n-placeholder="postTitlePlaceholder" placeholder="Заголовок поста">
+        <select id="postCategorySelect"></select>
+        <textarea id="postContentInput" class="post-content-textarea" data-i18n-placeholder="postContentPlaceholder" placeholder="Текст поста..."></textarea>
+
+        <button class="btn-fill square-btn" id="publishPostBtn" data-i18n="publishBtn">Опубликовать</button>
+    </div>
+</div>
+
+<!-- ===== Полноэкранный просмотр поста ===== -->
+<div class="modal post-view-modal" id="postViewModal">
+    <div class="post-view-full">
+        <button class="back-btn-corner" id="postViewBackBtn" data-i18n="backBtn">← Назад</button>
+        <div class="post-view-image" id="postViewImage"></div>
+        <div class="post-view-body">
+            <span class="role-chip" id="postViewCategory"></span>
+            <h1 id="postViewTitleText"></h1>
+            <div class="post-view-author" id="postViewAuthor"></div>
+            <p id="postViewContentText"></p>
+            <div class="post-view-actions" id="postViewActions"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Кнопка админки ===== -->
+<div id="adminFab" style="display:none;">⚙️</div>
+
+<div id="adminPanel" class="side-panel">
+    <div class="side-panel-header">
+        <h2 data-i18n="adminPanelTitle">Админ панель</h2>
+        <span class="close" id="closeAdminPanel">&times;</span>
+    </div>
+
+    <h4 class="section-title" data-i18n="usersManagementTitle">Пользователи</h4>
+    <div id="usersList" class="users-list"></div>
+
+    <hr class="divider" id="categoriesDivider" style="display:none;">
+    <div id="categoriesManagement" style="display:none;">
+        <h4 class="section-title" data-i18n="categoriesManagementTitle">Категории</h4>
+        <div id="categoriesList"></div>
+        <div class="add-category-row">
+            <input type="text" id="newCategoryEmoji" placeholder="🎯" maxlength="2">
+            <input type="text" id="newCategoryName" data-i18n-placeholder="categoryNamePlaceholder" placeholder="Название категории">
+            <button class="btn-fill square-btn" id="addCategoryBtn" data-i18n="addCategoryBtn">Добавить</button>
+        </div>
+    </div>
+
+    <hr class="divider" id="postsDivider" style="display:none;">
+    <div id="postsManagement" style="display:none;">
+        <h4 class="section-title" data-i18n="postsManagementTitle">Управление постами</h4>
+        <div id="adminPostsList"></div>
+    </div>
+</div>
+
+<script src="lang.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
